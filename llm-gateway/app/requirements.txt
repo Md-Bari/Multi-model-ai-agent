@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+redis
+litellm
+sqlalchemy[asyncio]
+asyncpg
+pydantic-settings

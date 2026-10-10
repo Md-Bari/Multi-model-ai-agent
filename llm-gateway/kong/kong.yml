@@ -1,0 +1,22 @@
+# Optional Kong front door (DB-less). Per-key checks stay in FastAPI;
+# Kong adds a coarse per-IP limit and a request size cap in front of it.
+_format_version: "3.0"
+
+services:
+  - name: llm-gateway
+    url: http://app:8000
+    read_timeout: 120000
+    routes:
+      - name: all
+        paths: ["/"]
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 300
+          policy: local
+          limit_by: ip
+      - name: request-size-limiting
+        config:
+          allowed_payload_size: 2
+          size_unit: megabytes
