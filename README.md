@@ -25,7 +25,7 @@ Stream back (SSE) + cache ── log tokens / cost / latency ──────�
 |---|---|
 | Backend | FastAPI, LangChain (`langchain-groq`, `langchain-google-genai`), SQLAlchemy 2 async, Alembic, Redis |
 | Frontend | Next.js 16 (App Router, Cache Components), Tailwind CSS 4, TypeScript |
-| Free hosting | Render (API) · Neon (Postgres) · Upstash (Redis) · Vercel (frontend) · GitHub Actions (CI) |
+| Free hosting | Render (API + Redis) · Neon (Postgres) · Vercel (frontend) · GitHub Actions (CI) |
 
 ## Features
 
@@ -80,25 +80,22 @@ The backend tests use SQLite, fakeredis and fake LangChain models, so they need 
 
 ## Deploy for free
 
-You need accounts on Neon, Upstash, Render and Vercel. All four have free plans that need no card.
+You need accounts on Neon, Render and Vercel. All three have free plans that need no card.
 
 ### 1. Database: Neon
 
 1. Create a project at https://neon.tech. Pick the region closest to your Render region, for example AWS Singapore.
 2. Copy the connection string (`postgresql://...neon.tech/neondb?sslmode=require`). The gateway converts it for asyncpg automatically, and pooled (`-pooler`) URLs work too.
 
-### 2. Redis: Upstash
+### 2. Backend and Redis: Render
 
-1. Create a Redis database at https://upstash.com in the same region.
-2. Copy the **TLS** URL: `rediss://default:<password>@<host>.upstash.io:6379`.
-
-### 3. Backend: Render
-
-1. Go to https://render.com, click **New → Blueprint**, and pick this repository. Render reads [`render.yaml`](render.yaml).
-2. Fill the secret values: `DATABASE_URL` (Neon), `REDIS_URL` (Upstash), `GEMINI_API_KEY`, `GROQ_API_KEY`.
+1. Go to https://render.com, click **New → Blueprint**, and pick this repository. Render reads [`render.yaml`](render.yaml), which creates the API plus a free Redis (Key Value) instance and connects them.
+2. Fill the secret values: `DATABASE_URL` (Neon), `GEMINI_API_KEY`, `GROQ_API_KEY`.
 3. Deploy. Migrations run automatically on start. Check `https://<service>.onrender.com/ready`.
 
-### 4. Frontend: Vercel
+The free Key Value instance isn't persisted, so a restart logs everyone out and clears the cache. Spend totals are safe, because they live in Postgres. For persistent Redis, create a free database at https://upstash.com, delete the `keyvalue` service and the `fromService` block from `render.yaml`, and set `REDIS_URL` to Upstash's `rediss://...` URL.
+
+### 3. Frontend: Vercel
 
 1. Go to https://vercel.com, click **Add New → Project**, import this repository, and set **Root Directory** to `frontend`.
 2. Add these environment variables, then deploy:
@@ -107,7 +104,7 @@ You need accounts on Neon, Upstash, Render and Vercel. All four have free plans 
 
 The browser only ever talks to Vercel: `/api/backend/*` is proxied to Render, so the login cookie stays first-party.
 
-### 5. Keep the backend awake (optional)
+### 4. Keep the backend awake (optional)
 
 Render's free plan sleeps after 15 idle minutes, and the next request then takes about 50 seconds. In GitHub, go to **Settings → Secrets and variables → Actions → Variables** and add `BACKEND_URL` = `https://<service>.onrender.com`. The [keep-alive workflow](.github/workflows/keepalive.yml) then pings `/health` every 10 minutes, which stays within Render's 750 free hours a month for one service.
 
@@ -117,7 +114,7 @@ Render's free plan sleeps after 15 idle minutes, and the next request then takes
 |---|---|
 | Render | Sleeps when idle (see step 5); 512 MB RAM |
 | Neon | 0.5 GB storage; compute pauses when idle and wakes in about 1 second |
-| Upstash | 256 MB; 500k commands a month |
+| Render Key Value | 25 MB; not persisted across restarts |
 | Vercel Hobby | Non-commercial use |
 | Gemini / Groq free tiers | Per-minute and per-day request limits; the gateway falls back when one is rate limited |
 

@@ -1,6 +1,6 @@
-# Render Blueprint for the backend (free plan).
-# Render → New → Blueprint → pick this repo. Fill the secret values when prompted.
-# Postgres comes from Neon and Redis from Upstash (both free, no expiry); see README.
+# Render Blueprint (free plan): Render → New → Blueprint → pick this repo.
+# Creates the API and a Redis (Key Value) instance and connects them.
+# Postgres comes from Neon (free, no expiry): paste its URL as DATABASE_URL when prompted.
 services:
   - type: web
     name: llm-gateway-api
@@ -19,11 +19,23 @@ services:
         value: production
       - key: COOKIE_SECURE
         value: "true"
-      - key: DATABASE_URL
-        sync: false
       - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: llm-gateway-redis
+          property: connectionString
+      - key: DATABASE_URL
         sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
+
+  # Free Key Value has no persistence: a restart clears sessions, cache and rate-limit
+  # counters (users log in again; spend totals are safe in Postgres).
+  - type: keyvalue
+    name: llm-gateway-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # reachable only from services in this Render account
