@@ -1,0 +1,29 @@
+# Render Blueprint for the backend (free plan).
+# Render → New → Blueprint → pick this repo. Fill the secret values when prompted.
+# Postgres comes from Neon and Redis from Upstash (both free, no expiry); see README.
+services:
+  - type: web
+    name: llm-gateway-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
