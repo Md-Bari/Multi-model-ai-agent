@@ -127,7 +127,6 @@ async def test_usage_is_recorded(client, api_key, providers):
     assert usage["totals"]["cache_hits"] == 1
     assert usage["recent"][0]["cached"] is True
     assert usage["by_model"][0]["model"] == "llama-3.1-8b-instant"
-    assert len(usage["daily"]) == 1
 
 
 async def test_playground_uses_session(client, user, providers):

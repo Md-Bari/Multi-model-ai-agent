@@ -15,6 +15,12 @@
   --warning: #b97a00;
   --chart-bar: #2a78d6;
   --chart-grid: #ecebe7;
+  /* validated sets (dataviz validator): requests = cached/fresh/failed, tokens = input/output */
+  --chart-cached: #1baf7a;
+  --chart-fresh: #2a78d6;
+  --chart-failed: #d03b3b;
+  --chart-input: #2a78d6;
+  --chart-output: #eb6834;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,6 +39,11 @@
     --warning: #fab219;
     --chart-bar: #3987e5;
     --chart-grid: #2a2a27;
+    --chart-cached: #199e70;
+    --chart-fresh: #3987e5;
+    --chart-failed: #e66767;
+    --chart-input: #3987e5;
+    --chart-output: #d95926;
   }
 }
 

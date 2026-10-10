@@ -31,7 +31,6 @@ export interface Usage {
     avg_latency_ms: number;
   };
   by_model: { model: string; requests: number; tokens: number; cost_usd: number }[];
-  daily: { date: string; requests: number; cost_usd: number }[];
   recent: {
     id: number;
     created_at: string;
@@ -47,7 +46,40 @@ export interface Usage {
   }[];
 }
 
-export type Providers = Record<"cheap" | "strong", { name: string; provider: string; model: string }[]>;
+export interface UsageMetrics {
+  requests: number;
+  cached: number;
+  errors: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  avg_latency_ms: number;
+}
+
+export type UsageRange = "24h" | "7d" | "28d" | "90d";
+
+export interface Timeseries {
+  range: UsageRange;
+  unit: "hour" | "day";
+  buckets: (UsageMetrics & { t: string })[];
+  totals: Omit<UsageMetrics, "avg_latency_ms">;
+  by_model: (UsageMetrics & { model: string })[];
+  by_key: (UsageMetrics & { key_id: number | null; name: string })[];
+  filters: { models: string[]; keys: { id: number; name: string }[] };
+}
+
+export interface KeyLimit {
+  key_id: number | null;
+  name: string;
+  rpm_limit: number;
+  requests_this_minute: number;
+  requests_24h: number;
+  tokens_24h: number;
+  budget_usd: number | null;
+  spent_usd: number | null;
+}
+
+export type Providers =Record<"cheap" | "strong", { name: string; provider: string; model: string }[]>;
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";

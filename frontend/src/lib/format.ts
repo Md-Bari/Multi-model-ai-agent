@@ -29,3 +29,15 @@ export function fmtRelative(iso: string | null): string {
 export function fmtDay(isoDate: string): string {
   return new Date(`${isoDate}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+/** Bucket labels from the usage API: "YYYY-MM-DDTHH:00" (hourly) or "YYYY-MM-DD" (daily), local time. */
+export function fmtBucket(t: string, unit: "hour" | "day"): string {
+  if (unit === "day") return fmtDay(t);
+  const d = new Date(`${t}:00`);
+  return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+export function fmtBucketTick(t: string, unit: "hour" | "day"): string {
+  if (unit === "day") return fmtDay(t);
+  return new Date(`${t}:00`).toLocaleTimeString(undefined, { hour: "numeric" });
+}

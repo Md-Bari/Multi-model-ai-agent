@@ -2,24 +2,33 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { RequestsChart } from "@/components/requests-chart";
+import Link from "next/link";
+
+import { BarChart } from "@/components/bar-chart";
 import { StatTile } from "@/components/stat-tile";
 import { Badge, Button, Card, EmptyState, ErrorText, PageHeader, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
-import { fmtCompact, fmtNumber, fmtRelative, fmtUsd } from "@/lib/format";
-import type { Providers, Usage } from "@/lib/types";
+import { fmtBucket, fmtBucketTick, fmtCompact, fmtNumber, fmtRelative, fmtUsd } from "@/lib/format";
+import type { Providers, Timeseries, Usage } from "@/lib/types";
 
-const fetchAll = () => Promise.all([api<Usage>("/api/usage"), api<Providers>("/api/providers")]);
+const fetchAll = () =>
+  Promise.all([
+    api<Usage>("/api/usage"),
+    api<Providers>("/api/providers"),
+    api<Timeseries>(`/api/usage/timeseries?range=7d&tz_offset=${-new Date().getTimezoneOffset()}`),
+  ]);
 
 export default function DashboardPage() {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [providers, setProviders] = useState<Providers | null>(null);
+  const [week, setWeek] = useState<Timeseries | null>(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  const apply = useCallback((u: Usage, p: Providers) => {
+  const apply = useCallback((u: Usage, p: Providers, w: Timeseries) => {
     setUsage(u);
     setProviders(p);
+    setWeek(w);
     setError("");
   }, []);
   const fail = useCallback((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load"), []);
@@ -27,7 +36,7 @@ export default function DashboardPage() {
   useEffect(() => {
     let active = true;
     fetchAll()
-      .then(([u, p]) => active && apply(u, p))
+      .then(([u, p, w]) => active && apply(u, p, w))
       .catch((e) => active && fail(e));
     return () => {
       active = false;
@@ -37,7 +46,7 @@ export default function DashboardPage() {
   function refresh() {
     setRefreshing(true);
     fetchAll()
-      .then(([u, p]) => apply(u, p))
+      .then(([u, p, w]) => apply(u, p, w))
       .catch(fail)
       .finally(() => setRefreshing(false));
   }
@@ -78,8 +87,27 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card title="Requests per day" className="lg:col-span-2">
-              <RequestsChart daily={usage.daily} />
+            <Card
+              title="Requests, last 7 days"
+              className="lg:col-span-2"
+              action={
+                <Link href="/usage" className="text-xs font-medium text-accent hover:underline">
+                  Detailed usage →
+                </Link>
+              }
+            >
+              {week && (
+                <BarChart
+                  data={week.buckets}
+                  series={[{ key: "requests", label: "Requests", color: "var(--chart-bar)" }]}
+                  value={(b) => b.requests}
+                  label={(b) => fmtBucket(b.t, week.unit)}
+                  tick={(b) => fmtBucketTick(b.t, week.unit)}
+                  format={(n) => fmtCompact(Math.round(n))}
+                  caption="Requests per day, last 7 days"
+                  height={160}
+                />
+              )}
             </Card>
             <Card title="Routing">
               {providers && (

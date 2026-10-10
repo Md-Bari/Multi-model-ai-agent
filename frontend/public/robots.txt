@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard
+Disallow: /usage
 Disallow: /keys
 Disallow: /playground
 Disallow: /docs

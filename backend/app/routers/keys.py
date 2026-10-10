@@ -83,8 +83,7 @@ async def revoke_key(key_id: int, user: User = Depends(current_user), db: DB = D
 
 
 @router.get("/usage")
-async def usage(days: int = 14, user: User = Depends(current_user), db: DB = Depends(get_db)):
-    days = max(1, min(days, 90))
+async def usage(user: User = Depends(current_user), db: DB = Depends(get_db)):
     mine = RequestLog.user_id == user.id
     totals = (
         await db.execute(
@@ -112,14 +111,6 @@ async def usage(days: int = 14, user: User = Depends(current_user), db: DB = Dep
         .order_by(func.count(RequestLog.id).desc())
     )
 
-    day = func.date(RequestLog.created_at)
-    daily = await db.execute(
-        select(day, func.count(RequestLog.id), func.coalesce(func.sum(RequestLog.cost_usd), 0.0))
-        .where(mine, RequestLog.created_at >= utcnow() - timedelta(days=days))
-        .group_by(day)
-        .order_by(day)
-    )
-
     recent = await db.scalars(select(RequestLog).where(mine).order_by(RequestLog.id.desc()).limit(50))
     return {
         "totals": {
@@ -132,7 +123,6 @@ async def usage(days: int = 14, user: User = Depends(current_user), db: DB = Dep
             "avg_latency_ms": int(totals[6] or 0),
         },
         "by_model": [{"model": m, "requests": n, "tokens": int(t), "cost_usd": round(float(c), 6)} for m, n, t, c in by_model],
-        "daily": [{"date": str(d), "requests": n, "cost_usd": round(float(c), 6)} for d, n, c in daily],
         "recent": [
             {
                 "id": r.id,

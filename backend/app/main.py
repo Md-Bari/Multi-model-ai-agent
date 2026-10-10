@@ -10,7 +10,7 @@ from app import clients
 from app.config import settings
 from app.db import engine
 from app.middleware import RequestContextMiddleware, configure_logging, request_id_var
-from app.routers import auth, gateway, keys
+from app.routers import auth, gateway, keys, usage
 from app.services.accounting import drain
 from app.services.llm import TIERS, chain_for
 
@@ -51,6 +51,7 @@ app.add_middleware(RequestContextMiddleware)
 
 app.include_router(auth.router)
 app.include_router(keys.router)
+app.include_router(usage.router)
 app.include_router(gateway.router)
 
 

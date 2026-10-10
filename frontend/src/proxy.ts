@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Optimistic check only: the cookie's presence decides the redirect. The backend still
 // verifies the session on every API call, and the app shell sends users to /login on 401.
 const SESSION_COOKIE = "llmgw_session";
-const PROTECTED = ["/dashboard", "/keys", "/playground", "/docs"];
+const PROTECTED = ["/dashboard", "/usage", "/keys", "/playground", "/docs"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export function proxy(request: NextRequest) {
@@ -22,5 +22,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/keys/:path*", "/playground/:path*", "/docs/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/usage/:path*", "/keys/:path*", "/playground/:path*", "/docs/:path*", "/login", "/register"],
 };

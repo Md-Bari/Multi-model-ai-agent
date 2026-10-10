@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { ApiError, api, post } from "@/lib/api";
+import { AUTH_EXPIRED_EVENT, ApiError, api, post } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 import { Button, Skeleton, cn } from "./ui";
@@ -14,6 +14,7 @@ export const useUser = () => useContext(UserContext);
 
 const NAV = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/usage", label: "Usage" },
   { href: "/keys", label: "API keys" },
   { href: "/playground", label: "Playground" },
   { href: "/docs", label: "Docs" },
@@ -38,8 +39,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         if (e instanceof ApiError && e.status === 401) toLogin();
         else setError(e.message);
       });
+    // Any API call that gets a 401 later (session expired) sends the user to login.
+    window.addEventListener(AUTH_EXPIRED_EVENT, toLogin);
     return () => {
       active = false;
+      window.removeEventListener(AUTH_EXPIRED_EVENT, toLogin);
     };
   }, [toLogin]);
 
@@ -48,28 +52,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.replace("/login");
   }
 
-  if (!user) {
-    return (
-      <div className="mx-auto w-full max-w-6xl p-6">
-        {error ? (
-          <div className="rounded-xl border border-border bg-surface p-6 text-sm">
-            <p className="font-medium text-foreground">Couldn&apos;t load your account</p>
-            <p className="mt-1 text-muted">{error}</p>
-            <Button className="mt-4" variant="secondary" onClick={() => location.reload()}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        )}
-      </div>
-    );
-  }
-
+  // The layout and page render immediately (instant navigation); only the account
+  // details wait for /auth/me. proxy.ts already keeps signed-out visitors out.
   return (
     <UserContext.Provider value={user}>
       <div className="flex min-h-screen w-full flex-col md:flex-row">
@@ -101,9 +85,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
             <div className="mt-4 border-t border-border px-3 pt-4 md:mt-auto">
-              <p className="truncate text-xs text-subtle" title={user.email}>
-                {user.email}
-              </p>
+              {user ? (
+                <p className="truncate text-xs text-subtle" title={user.email}>
+                  {user.email}
+                </p>
+              ) : (
+                <Skeleton className="h-4 w-32" />
+              )}
               <Button variant="ghost" className="mt-2 -ml-3.5" onClick={logout}>
                 Log out
               </Button>
@@ -111,7 +99,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </aside>
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
-          <div className="mx-auto max-w-6xl">{children}</div>
+          <div className="mx-auto max-w-6xl">
+            {error && (
+              <div role="alert" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 text-sm">
+                <span>
+                  <span className="font-medium text-foreground">Couldn&apos;t reach your account.</span>{" "}
+                  <span className="text-muted">{error}</span>
+                </span>
+                <Button variant="secondary" onClick={() => location.reload()}>
+                  Retry
+                </Button>
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
     </UserContext.Provider>

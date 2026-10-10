@@ -4,6 +4,9 @@ export const API_BASE = "/api/backend";
 // Public URL of the gateway, shown in code examples. Set at build time.
 export const PUBLIC_API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
+/** Fired when a signed-in API call returns 401; the app shell redirects to login. */
+export const AUTH_EXPIRED_EVENT = "llmgw:auth-expired";
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -37,6 +40,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/auth/") && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
     const fallback = res.status >= 500 ? "Server error. Please try again." : res.statusText || "Request failed";
     throw new ApiError(res.status, detailMessage(data, fallback));
   }
